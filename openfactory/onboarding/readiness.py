@@ -340,6 +340,11 @@ class Probes:
     #: `product.admins` — who may make the product role WRITE. Empty means nobody, and nothing
     #: else in this report or in `doctor` reads it.
     product_admins: Callable[[], list[str]]
+    #: `credential_store.stored` — a `box.env` name the deployment's credential store answers for
+    #: that the environment does not hold (a mounted secret file, #742). The box receives it, so it
+    #: is not missing. Answers nothing by default, so a test presenting an environment measures
+    #: that environment alone.
+    stored: Callable[[str], str | None] = lambda _name: None
 
 
 def _guarded(check: str, on: str, fn: Callable[[], tuple[Finding, str]]) -> tuple[Finding, str]:
@@ -859,8 +864,9 @@ def _env_names(p: Probes, on: str) -> tuple[Finding, str]:
                    "this project names no variables in `box.env`, so the box receives only the "
                    "harness defaults (`container.py::_AUTH_ENV_VARS`)", on=on), ""
     env = p.environ()
-    absent = [n for n in names if env.get(n) is None]
-    blank = [n for n in names if n not in absent and not str(env.get(n, "")).strip()]
+    absent = [n for n in names if env.get(n) is None and p.stored(n) is None]
+    blank = [n for n in names if n not in absent and env.get(n) is not None
+             and not str(env.get(n)).strip()]
     if not absent and not blank:
         return _ok("env_names",
                    f"all {len(names)} name(s) in `box.env` are set and non-empty in the {on} "
@@ -1031,6 +1037,11 @@ def probes_for(project) -> Probes:
 
         return os.environ
 
+    def _stored(name: str) -> str | None:
+        from openfactory.adapters.credential_store.registry import stored
+
+        return stored(name)
+
     return Probes(
         project_name=name,
         measured_on=where_this_answers_for,
@@ -1052,6 +1063,7 @@ def probes_for(project) -> Probes:
         harness_kind=lambda: harness_kind(project, "executor"),
         box_env_names=lambda: list(getattr(getattr(project, "box", None), "env", None) or []),
         environ=_environ,
+        stored=_stored,
         enabled=lambda: bool(getattr(project, "enabled", True)),
         registry_entry=lambda: project.model_dump(mode="json"),
         worker_registry_entry=_worker_entry,
