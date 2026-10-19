@@ -7774,7 +7774,7 @@ CATALOG: dict[str, ActionSpec] = {
             summary="issue a one-time link that registers a person on this deployment, vouched "
                     "for by you",
             run=_people_invite,
-            refuses=(INVALID, DENIED, UNAVAILABLE),
+            refuses=(INVALID, UNAVAILABLE),
             required=("person",),
             optional=("display", "product", "board"),
             installation=True,
@@ -7793,6 +7793,7 @@ CATALOG: dict[str, ActionSpec] = {
             summary="take a person off this deployment — their registration, their sessions and "
                     "any invitation still open for them",
             run=_people_revoke,
+            refuses=(INVALID, NOT_FOUND, CONFLICT, UNAVAILABLE),
             required=("person",),
             installation=True,
             params={"person": "the person's id, as `openfactory people list` shows it"},
@@ -7803,6 +7804,7 @@ CATALOG: dict[str, ActionSpec] = {
             summary="hold pickup everywhere: no card in TO-DO is picked up until the poller is "
                     "resumed — the jobs already running carry on",
             run=_poller_pause,
+            refuses=(UNAVAILABLE,),
             optional=("note",),
             installation=True,
         ),
@@ -7810,6 +7812,7 @@ CATALOG: dict[str, ActionSpec] = {
             name="poller_resume",
             summary="take work again: the poller picks cards up from TO-DO on its schedule",
             run=_poller_resume,
+            refuses=(UNAVAILABLE,),
             optional=("note",),
             installation=True,
             params={"note": "why, if it is worth saying — it replaces the note the pause left"},
@@ -7824,6 +7827,7 @@ CATALOG: dict[str, ActionSpec] = {
             summary="say what the product role is called in this project's conversations — or, "
                     "with no name given, what it is called now",
             run=_product_name,
+            refuses=(INVALID, NOT_FOUND),
             required=("project",),
             optional=("agent_name",),
             installation=True,
@@ -7836,6 +7840,7 @@ CATALOG: dict[str, ActionSpec] = {
             summary="record which existing repository holds this product's requirements, and "
                     "try to read it with every credential that will",
             run=_product_declare,
+            refuses=(INVALID, NOT_FOUND),
             required=("project", "docs_repo"),
             installation=True,
         ),
@@ -7844,6 +7849,7 @@ CATALOG: dict[str, ActionSpec] = {
             summary="check every prerequisite of running a ticket on a project, and say which is "
                     "missing — the `openfactory.doctor/1` document; changes nothing",
             run=_doctor,
+            refuses=(NOT_FOUND,),
             required=("project",),
             needs_admin=False,
         ),
