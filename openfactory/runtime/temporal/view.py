@@ -28,7 +28,6 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
-import os
 import time
 from dataclasses import dataclass
 
@@ -37,6 +36,7 @@ from temporalio.client import Client, WorkflowExecutionStatus
 from openfactory.contracts.state import JobState
 from openfactory.listeners import ENGINE, ENGINE_UI
 from openfactory.runtime.temporal import TASK_QUEUE
+from openfactory.runtime.temporal.deadlines import read_deadline, unreachable_window
 from openfactory.runtime.temporal.io import JobParams
 
 # `tv.ATTENTION_STATES` and `tv.MERGE_WAIT` are the names every caller uses, so they are named
@@ -48,50 +48,10 @@ from openfactory.util.bounded import BoundedDict
 log = logging.getLogger("openfactory.panel.temporal")
 
 
-#: What a READ somebody is waiting for may spend on an engine that is not answering (#159).
-#:
-#: MEASURED, ON THE REAL STACK. With the engine killed under a running panel — `main` at `98dc177`,
-#: so with the pooled client — `/api/floor` took **38.8 s**, `/api/inbox` 8.9 s (and then a 500),
-#: `/api/temporal/jobs` 6.3 s: the client retries an unreachable engine (`gRPC call
-#: describe_schedule retried 7 times`) before anything gives up. The board's own route stayed at
-#: 8 ms and the board still crawled — a tab gets six connections to a host, the page asks for the
-#: floor on every engine frame and holds the stream open, so those six fill with requests waiting
-#: on retries and every other read queues behind them.
-#:
-#: WHAT A HEALTHY READ COSTS, so the headroom is a measurement and not a hope (review of #161).
-#: On a dev server with the worker running, timed through these functions:
-#:
-#:     list_jobs, 8 jobs      51 ms median, 80 ms max
-#:     list_jobs, 50 jobs     317 ms median, 352 ms max   ← 50 is the panel's own limit
-#:     job_detail             8 ms
-#:     intake                 5 ms
-#:
-#: So three seconds is roughly ten times what the panel's largest list costs. The cost grows with
-#: the number of RUNNING jobs, because each one is queried for its state — which is also why this
-#: bound catches a second real case: a workflow whose worker is gone cannot answer a query at all,
-#: and `list_jobs` did not return in 120 s against eight such jobs. It now degrades in three.
-#:
-#: A NUMBER A DEPLOYMENT CAN CHANGE, because "slow" is a property of somebody's network: a Temporal
-#: Cloud namespace across a region answers in tenths of a second, and this must not call that
-#: unreachable. Read per call, so an operator changes it without a rebuild.
-def read_deadline() -> float:
-    return _seconds("OPENFACTORY_ENGINE_DEADLINE", 3.0)
-
-
-#: How long an engine that did not answer is remembered as unreachable, so the NEXT read does not
-#: pay the same wait again. Short on purpose: an engine that came back must be picked up without a
-#: restart, which is the rule `connect()` already holds for a failed connect.
-def unreachable_window() -> float:
-    return _seconds("OPENFACTORY_ENGINE_UNREACHABLE_FOR", 3.0)
-
-
-def _seconds(name: str, fallback: float) -> float:
-    try:
-        wanted = float(os.environ.get(name, "") or fallback)
-    except ValueError:
-        log.warning("%s is not a number (%r) — using %ss", name, os.environ.get(name), fallback)
-        return fallback
-    return wanted if wanted > 0 else fallback
+# HOW LONG A READ MAY WAIT (`read_deadline`), AND HOW LONG A SILENT ENGINE IS REMEMBERED
+# (`unreachable_window`), live in `deadlines.py`: the same two numbers, read without the engine's
+# client, for the healthcheck that asks them every fifteen seconds (#681). Imported above and
+# named on this module, as every caller and guard reads them.
 
 
 #: When the engine is worth asking again — a loop clock, never a wall clock.
