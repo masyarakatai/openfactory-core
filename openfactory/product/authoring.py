@@ -531,7 +531,7 @@ def propose_requirement(
 
     tmp = Path(tempfile.mkdtemp(prefix="openfactory-req-"))
     try:
-        rc, out = _git(["clone", "--no-local", "--depth", "1", "--branch", base, clone_url,
+        rc, out = _git(["clone", "--no-local", "--depth", "1", "--branch", base, "--", clone_url,
                         str(tmp)])
         if rc != 0:
             return WriteResult(ok=False,
@@ -647,7 +647,7 @@ def propose_requirement(
         if rc != 0:
             return WriteResult(ok=False, detail=f"nothing to commit: {_scrub(out)[-200:]}")
 
-        rc, out = _git(["push", clone_url, f"HEAD:{base}"], cwd=tmp)
+        rc, out = _git(["push", "--", clone_url, f"HEAD:{base}"], cwd=tmp)
         if rc == 0:
             log.info("OPENFACTORY_PRODUCT_WRITTEN repo=%s base=%s req=%04d — written directly, as "
                      "proposed", docs_repo, base, number)
@@ -661,7 +661,7 @@ def propose_requirement(
         rc, out = _git(["checkout", "-b", branch], cwd=tmp)
         if rc != 0:
             return WriteResult(ok=False, detail=f"could not create {branch}: {_scrub(out)[-200:]}")
-        rc, out = _git(["push", "-u", clone_url, branch], cwd=tmp)
+        rc, out = _git(["push", "-u", "--", clone_url, branch], cwd=tmp)
         if rc != 0:
             return WriteResult(ok=False, detail=f"could not push {branch}: {_scrub(out)[-200:]}")
 
@@ -1767,7 +1767,7 @@ def record_fact(*, docs_repo: str, clone_url: str, term: str, body: str, said_by
 
     tmp = Path(tempfile.mkdtemp(prefix="openfactory-fact-"))
     try:
-        rc, out = _git(["clone", "--no-local", "--depth", "1", "--branch", base, clone_url,
+        rc, out = _git(["clone", "--no-local", "--depth", "1", "--branch", base, "--", clone_url,
                         str(tmp)])
         if rc != 0:
             return WriteResult(ok=False,
@@ -1789,7 +1789,7 @@ def record_fact(*, docs_repo: str, clone_url: str, term: str, body: str, said_by
                        cwd=tmp)
         if rc != 0:
             return WriteResult(ok=False, detail=f"nothing to commit: {_scrub(out)[-200:]}")
-        rc, out = _git(["push", clone_url, f"HEAD:{base}"], cwd=tmp)
+        rc, out = _git(["push", "--", clone_url, f"HEAD:{base}"], cwd=tmp)
         if rc != 0:
             # a protected branch is the docs repo owner's right — say exactly what to do instead
             return WriteResult(ok=False,
@@ -1863,7 +1863,7 @@ def record_distillate(*, docs_repo: str, clone_url: str, path: str, text: str, a
     says what the file is, never whose conversation it was."""
     tmp = Path(tempfile.mkdtemp(prefix="openfactory-distillate-"))
     try:
-        rc, out = _git(["clone", "--no-local", "--depth", "1", "--branch", base, clone_url,
+        rc, out = _git(["clone", "--no-local", "--depth", "1", "--branch", base, "--", clone_url,
                         str(tmp)])
         if rc != 0:
             return WriteResult(ok=False,
@@ -1881,7 +1881,7 @@ def record_distillate(*, docs_repo: str, clone_url: str, path: str, text: str, a
                                          "never a decision."], cwd=tmp)
         if rc != 0:
             return WriteResult(ok=False, detail=f"nothing to commit: {_scrub(out)[-200:]}")
-        rc, out = _git(["push", clone_url, f"HEAD:{base}"], cwd=tmp)
+        rc, out = _git(["push", "--", clone_url, f"HEAD:{base}"], cwd=tmp)
         if rc != 0:
             return WriteResult(ok=False,
                                detail=f"the repository does not take a direct commit "
@@ -1960,7 +1960,7 @@ def forget_distillates(*, docs_repo: str, clone_url: str, base: str = "main") ->
 
     tmp = Path(tempfile.mkdtemp(prefix="openfactory-forget-"))
     try:
-        rc, out = _git(["clone", "--no-local", "--branch", base, clone_url, str(tmp)])
+        rc, out = _git(["clone", "--no-local", "--branch", base, "--", clone_url, str(tmp)])
         if rc != 0:
             return ContextForgotten(ok=False,
                                     detail=f"could not clone {docs_repo}: {_scrub(out)[-200:]}")
@@ -1990,7 +1990,7 @@ def forget_distillates(*, docs_repo: str, clone_url: str, base: str = "main") ->
         if rc != 0:
             return ContextForgotten(ok=False, requirements=requirements,
                                     detail=f"nothing to commit: {_scrub(out)[-200:]}")
-        rc, out = _git(["push", clone_url, f"HEAD:{base}"], cwd=tmp)
+        rc, out = _git(["push", "--", clone_url, f"HEAD:{base}"], cwd=tmp)
         if rc != 0:
             return ContextForgotten(ok=False, requirements=requirements,
                                     detail=f"the repository does not take a direct commit on "
@@ -2019,7 +2019,7 @@ def file_document(*, docs_repo: str, clone_url: str, name: str, data: bytes, mes
     stem, suffix = (stem, f".{suffix}") if dot and stem else (name, "")
     tmp = Path(tempfile.mkdtemp(prefix="openfactory-filed-"))
     try:
-        rc, out = _git(["clone", "--no-local", "--depth", "1", "--branch", base, clone_url,
+        rc, out = _git(["clone", "--no-local", "--depth", "1", "--branch", base, "--", clone_url,
                         str(tmp)])
         if rc != 0:
             return WriteResult(ok=False,
@@ -2035,7 +2035,7 @@ def file_document(*, docs_repo: str, clone_url: str, name: str, data: bytes, mes
         rc, out = _git(["commit", "-m", message], cwd=tmp)
         if rc != 0:
             return WriteResult(ok=False, detail=f"nothing to commit: {_scrub(out)[-200:]}")
-        rc, out = _git(["push", clone_url, f"HEAD:{base}"], cwd=tmp)
+        rc, out = _git(["push", "--", clone_url, f"HEAD:{base}"], cwd=tmp)
         if rc != 0:
             return WriteResult(ok=False,
                                detail=f"the repository does not take a direct commit "
@@ -2118,7 +2118,7 @@ a conversation that scrolls. The role said it better than anybody: *"if this onl
         return WriteResult(ok=False, detail=_w(language, "no_decision"))
     tmp = Path(tempfile.mkdtemp(prefix="openfactory-decision-"))
     try:
-        rc, out = _git(["clone", "--no-local", "--depth", "1", "--branch", base, clone_url,
+        rc, out = _git(["clone", "--no-local", "--depth", "1", "--branch", base, "--", clone_url,
                         str(tmp)])
         if rc != 0:
             return WriteResult(ok=False,
@@ -2154,7 +2154,7 @@ a conversation that scrolls. The role said it better than anybody: *"if this onl
                         _w(language, "decision_commit", number=number, by=decided_by)], cwd=tmp)
         if rc != 0:
             return WriteResult(ok=False, detail=f"nothing to commit: {_scrub(out)[-200:]}")
-        rc, out = _git(["push", clone_url, f"HEAD:{base}"], cwd=tmp)
+        rc, out = _git(["push", "--", clone_url, f"HEAD:{base}"], cwd=tmp)
         if rc != 0:
             return WriteResult(ok=False,
                                detail=_w(language, "not_direct", out=_scrub(out)[-120:]))
@@ -2190,7 +2190,7 @@ def accept_requirement(*, docs_repo: str, clone_url: str, path: str, number: int
     day = today or datetime.datetime.now(datetime.UTC).date().isoformat()
     tmp = Path(tempfile.mkdtemp(prefix="openfactory-accept-"))
     try:
-        rc, out = _git(["clone", "--no-local", "--depth", "1", "--branch", base, clone_url,
+        rc, out = _git(["clone", "--no-local", "--depth", "1", "--branch", base, "--", clone_url,
                         str(tmp)])
         if rc != 0:
             return WriteResult(ok=False,
@@ -2225,7 +2225,7 @@ def accept_requirement(*, docs_repo: str, clone_url: str, path: str, number: int
                        cwd=tmp)
         if rc != 0:
             return WriteResult(ok=False, detail=f"nothing to commit: {_scrub(out)[-200:]}")
-        rc, out = _git(["push", clone_url, f"HEAD:{base}"], cwd=tmp)
+        rc, out = _git(["push", "--", clone_url, f"HEAD:{base}"], cwd=tmp)
         if rc != 0:
             return WriteResult(ok=False,
                                detail=_w(language, "not_direct", out=_scrub(out)[-120:]))
@@ -2264,7 +2264,7 @@ def drop_requirement(*, docs_repo: str, clone_url: str, path: str, number: int,
     day = today or datetime.datetime.now(datetime.UTC).date().isoformat()
     tmp = Path(tempfile.mkdtemp(prefix="openfactory-drop-"))
     try:
-        rc, out = _git(["clone", "--no-local", "--depth", "1", "--branch", base, clone_url,
+        rc, out = _git(["clone", "--no-local", "--depth", "1", "--branch", base, "--", clone_url,
                         str(tmp)])
         if rc != 0:
             return WriteResult(ok=False,
@@ -2292,7 +2292,7 @@ def drop_requirement(*, docs_repo: str, clone_url: str, path: str, number: int,
         rc, out = _git(["commit", "-m", message + (f"\n\n{reason}" if reason else "")], cwd=tmp)
         if rc != 0:
             return WriteResult(ok=False, detail=f"nothing to commit: {_scrub(out)[-200:]}")
-        rc, out = _git(["push", clone_url, f"HEAD:{base}"], cwd=tmp)
+        rc, out = _git(["push", "--", clone_url, f"HEAD:{base}"], cwd=tmp)
         if rc != 0:
             return WriteResult(ok=False,
                                detail=_w(language, "not_direct", out=_scrub(out)[-120:]))
@@ -2515,7 +2515,7 @@ def propose_baseline(*, docs_repo: str, clone_url: str, files: dict[str, str],
 
     tmp = Path(tempfile.mkdtemp(prefix="openfactory-baseline-"))
     try:
-        rc, out = _git(["clone", "--no-local", "--depth", "1", "--branch", base, clone_url,
+        rc, out = _git(["clone", "--no-local", "--depth", "1", "--branch", base, "--", clone_url,
                         str(tmp)])
         if rc != 0:
             return WriteResult(ok=False,
@@ -2535,7 +2535,7 @@ def propose_baseline(*, docs_repo: str, clone_url: str, files: dict[str, str],
                            product=product)], cwd=tmp)
         if rc != 0:
             return WriteResult(ok=False, detail=f"nothing to commit: {_scrub(out)[-200:]}")
-        rc, out = _git(["push", "-u", clone_url, branch], cwd=tmp)
+        rc, out = _git(["push", "-u", "--", clone_url, branch], cwd=tmp)
         if rc != 0:
             return WriteResult(ok=False, detail=f"could not push {branch}: {_scrub(out)[-200:]}")
 

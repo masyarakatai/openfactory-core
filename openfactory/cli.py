@@ -3767,7 +3767,8 @@ def _seed_the_context_repository(name: str) -> None:
                 subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True,
                                check=True, timeout=60)
 
-            subprocess.run(["git", "clone", "--no-local", "-q", where, tmp], capture_output=True,
+            subprocess.run(["git", "clone", "--no-local", "-q", "--", where, tmp],
+                           capture_output=True,
                            text=True, check=True, timeout=60)
             seed = Path(tmp) / namespace.DIR / "product.yaml"
             seed.parent.mkdir(parents=True, exist_ok=True)
@@ -3778,7 +3779,7 @@ def _seed_the_context_repository(name: str) -> None:
             git("add", "-A")
             git("-c", "user.email=bot@openfactory.local", "-c", "user.name=OpenFactory Bot",
                 "commit", "-qm", f"{name}: the product's own context repository")
-            git("push", "-q", "origin", "HEAD:main")
+            git("push", "-q", "--", "origin", "HEAD:main")
         # WHICH OF THE TWO IT DID. "Created" over a repository that was already there — because a
         # push failed last time and this run finished the job — is the kind of small untruth that
         # makes a person doubt the rest of the output.
@@ -4843,7 +4844,8 @@ def product_init(
         root = _Path(tmp) / "docs"
         if docs_repo:
             url = _context_clone_url(project, docs_repo)
-            rc = subprocess.run(["git", "clone", "--no-local", "--depth", "1", url, str(root)],
+            rc = subprocess.run(["git", "clone", "--no-local", "--depth", "1", "--", url,
+                                 str(root)],
                                 capture_output=True, text=True, timeout=180)
             if rc.returncode != 0:
                 typer.echo(f"✗ could not clone {docs_repo}: {rc.stderr[-200:]}")
@@ -4867,7 +4869,7 @@ def product_init(
             docs_repo, made = _create_context_repo(project, name)
             typer.echo(f"{'✓ created' if made else '· found'} {docs_repo}")
             url = _context_clone_url(project, docs_repo)
-            rc = subprocess.run(["git", "clone", "--no-local", url, str(root)],
+            rc = subprocess.run(["git", "clone", "--no-local", "--", url, str(root)],
                                 capture_output=True, text=True, timeout=180)
             if rc.returncode != 0:
                 typer.echo(f"✗ could not clone {docs_repo}: {rc.stderr[-200:]}")
@@ -4932,7 +4934,7 @@ def product_init(
                      # after a partial failure (pushed, then `gh pr create` had no token) must
                      # overwrite rather than dead-lock on a non-fast-forward. Same rule, and the
                      # same reason, as `publish_branch`.
-                     ["push", "--force", "-u", "origin", branch]):
+                     ["push", "--force", "-u", "--", "origin", branch]):
             done = subprocess.run(["git", "-C", str(root), *ident, *args],
                                   capture_output=True, text=True, timeout=180)
             if done.returncode != 0:

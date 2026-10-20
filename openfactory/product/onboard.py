@@ -245,7 +245,7 @@ def context_reachability(project, docs_repo: str) -> tuple[bool, str]:
             routes.append((label, url))
 
     for label, url in routes:
-        rc, out = _git(["ls-remote", "--heads", url])
+        rc, out = _git(["ls-remote", "--heads", "--", url])
         if rc != 0:
             return False, f"{label} cannot read it — {scrub(out).strip()[-240:]}"
     return True, ""

@@ -448,7 +448,7 @@ def onboard_product_context(project, *, sources: list[str],
 
     root = Path(tempfile.mkdtemp(prefix="openfactory-context-"))
     try:
-        rc, log_out = _git(["clone", "--no-local", url, str(root / "docs")])
+        rc, log_out = _git(["clone", "--no-local", "--", url, str(root / "docs")])
         if rc != 0:
             out.detail = f"could not clone {docs_repo}: {scrub(log_out)[-200:]}"
             return out
@@ -517,7 +517,7 @@ def onboard_product_context(project, *, sources: list[str],
                          ["-C", str(docs_clone), "commit", "-m",
                           f"{getattr(project, 'name', 'product')}: declare this product and "
                           f"its backfilled context"],
-                         ["-C", str(docs_clone), "push", "-u", url, base]):
+                         ["-C", str(docs_clone), "push", "-u", "--", url, base]):
                 rc, log_out = _git(args)
                 if rc != 0:
                     out.detail = f"git {args[2]} failed: {scrub(log_out)[-200:]}"
@@ -534,7 +534,7 @@ def onboard_product_context(project, *, sources: list[str],
                      # the bot's OWN onboarding branch — a retry after a partial failure must
                      # replace, not dead-lock on a non-fast-forward (product init's rule); safe
                      # only BECAUSE the port said no open review exists on it
-                     ["-C", str(docs_clone), "push", "--force", "-u", url, branch]):
+                     ["-C", str(docs_clone), "push", "--force", "-u", "--", url, branch]):
             rc, log_out = _git(args)
             if rc != 0:
                 out.detail = f"git {args[2]} failed: {scrub(log_out)[-200:]}"
